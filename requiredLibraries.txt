@@ -1,13 +1,14 @@
 pyttsx3
-SpeechRecognition==3.14.3
-audioop-lts; python_version >= "3.13"
+speechrecognition
 pywhatkit
-pywikihow
-GoogleImageScraper
-standard-imghdr
-playsound==1.2.2
+wikipedia
+pyautogui
 wolframalpha
-win10toast
-PyAudio
-keyboard
-plyer
+pyperclip
+pytube
+matplotlib
+notifypy
+psutil
+pypdf2  
+
+pip install pyttsx3 SpeechRecognition pywhatkit wikipedia pyautogui wolframalpha pyperclip pytube matplotlib notifypy psutil PyPDF2
