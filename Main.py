@@ -1,7 +1,5 @@
 import os
 import platform
-import pyttsx3
-import speech_recognition as sr
 import datetime
 import webbrowser
 import pywhatkit
@@ -24,48 +22,34 @@ from Automations import (
     read_pdf,
     clean_downloads
 )
-from Whatsapp import send_whatsapp_web_message
+
+from utils import speak, take_command
+
+from Features import (
+    GoogleSearch,
+    Alarm,
+    DownloadYouTube,
+    SpeedTest,
+    calculator
+)
+
+
+from Whatsapp import whatsapp_chat_input
 
 
 # Database imports
 from Database.ChatBot.ChatBot import ChatterBot
 
 # ========== Global Setup ==========
-engine = pyttsx3.init()
-engine.setProperty('rate', 150)
 speak_lock = threading.Lock()
 parent_conn, child_conn = Pipe()
 task_list = []  # Dynamic task list for scheduling
 
 # ========== Core Functions ==========
-def speak(text):
-    with speak_lock:
-        print("Jarvis:", text)
-        engine.say(text)
-        engine.runAndWait()
-
 
 def run_in_thread(func, *args):
     thread = threading.Thread(target=func, args=args)
     thread.start()
-
-
-def take_command():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening...")
-        audio = r.listen(source)
-    try:
-        print("Recognizing...")
-        command = r.recognize_google(audio)
-        print("User:", command)
-    except sr.UnknownValueError:
-        speak("Sorry, I didn't get that.")
-        return ""
-    except sr.RequestError:
-        speak("Speech service is down.")
-        return ""
-    return command.lower()
 
 # ========== Round Robin Scheduler ==========
 def round_robin_scheduling(processes, burst_time, quantum):
@@ -149,12 +133,19 @@ def show_notification(title, message):
     notify.message = message
     notify.send()
     
-def custom_notification():
-    speak("What should I show in the notification?")
-    message = input("Enter your notification message: ")
-    show_notification("Jarvis Notification", message)
-    speak(f"Notification sent: {message}")
-
+def custom_notification(msg):
+    try:
+        # Extract message after the word 'notify'
+        message = msg.split("notify", 1)[1].strip()
+        
+        if message:
+            show_notification("Jarvis Notification", message)
+            speak(f"Notification sent: {message}")
+        else:
+            speak("Please provide a message after 'notify'.")
+    except Exception as e:
+        speak("Sorry, I couldn't send the notification.")
+        print("Error:", e)
 
 # ========== Main Assistant ==========
 def main():
@@ -215,16 +206,13 @@ def main():
         elif "shutdown" in query:
             speak("Shutting down...")
             os.system("shutdown /s /t 1")
-
-
-
         
         elif "play" in query:
             speak("Playing on YouTube...")
             query = query.replace("play", "")
             run_in_thread(pywhatkit.playonyt, query)
       
-        elif "list files" in query:
+        elif "list files" in query or "show files" in query or "list file" in query:
             files = os.listdir()
             speak("Files in the current directory are:")
             for f in files:
@@ -242,7 +230,7 @@ def main():
             utilities = {
                 "ip address": get_ip,
                 "battery": get_battery,
-                "notify": lambda: custom_notification(),
+                "notify": lambda: custom_notification(query),
                 "time": lambda: speak(f"The current time is {datetime.datetime.now().strftime('%H:%M:%S')}"),
                 "date": lambda: speak(f"Today's date is {datetime.date.today().strftime('%B %d, %Y')}")
             }
@@ -265,9 +253,7 @@ def main():
                 speak("Failed to set reminder.")
                 
         elif "send whatsapp message" in query or "send message" in query or "whatsapp" in query:
-            contact = input("Enter WhatsApp contact name: ")
-            message = input("Enter the message to send: ")
-            send_whatsapp_web_message(contact, message)
+            whatsapp_chat_input()
 
 
         elif "read pdf" in query:
@@ -286,6 +272,27 @@ def main():
             path = os.path.join(os.path.expanduser("~"), "Downloads")
             speak("Cleaning Downloads folder...")
             run_in_thread(clean_downloads, path)
+
+        # ---------- Features ----------
+        elif "google search" in query or "search on google" in query:
+            speak("Searching Google...")
+            run_in_thread(GoogleSearch, query)
+            
+
+        elif "set alarm" in query:
+            speak("Setting alarm...")
+            run_in_thread(Alarm, query)
+
+        elif "download video" in query or "download youtube video" in query:
+            speak("Downloading video...")
+            run_in_thread(DownloadYouTube)
+
+        elif "internet speed" in query or "speed test" in query:
+            speak("Running internet speed test...")
+            run_in_thread(SpeedTest)
+
+        elif any(x in query for x in ["plus", "minus", "add", "subtract", "multiply", "divide"]):
+            run_in_thread(calculator, query)
 
 
         # ---------- Exit ----------

@@ -1,18 +1,11 @@
-import pyttsx3
 import os
 import shutil
-import pywhatkit
-import datetime
 import time
 import PyPDF2
 
-engine = pyttsx3.init()
-engine.setProperty('rate', 150)
+# Assumes speak() is imported from utils or defined elsewhere
+from utils import speak
 
-def speak(text):
-    print("Jarvis:", text)
-    engine.say(text)
-    engine.runAndWait()
 
 # 1. Wake Word Detection (basic placeholder)
 def wake_word_detected(command):
