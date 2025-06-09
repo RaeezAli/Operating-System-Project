@@ -31,6 +31,7 @@ from Features import (
     calculator
 )
 
+from MemoryAllocation import first_fit, best_fit, worst_fit, paging
 
 from Whatsapp import whatsapp_chat_input
 
@@ -354,6 +355,27 @@ def main():
 
         elif any(x in query for x in ["plus", "minus", "add", "subtract", "multiply", "divide"]):
             run_in_thread(calculator, query)
+
+        elif "memory" in query or "allocation" in query or "memory allocation" in query:
+            blocks = [100, 500, 200, 300, 600]
+            processes = [212, 417, 112, 426]
+
+            # First Fit Allocation
+            ff_result = first_fit(blocks.copy(), processes)
+            speak(f"First Fit: {ff_result}")
+
+            # Best Fit Allocation
+            bf_result = best_fit(blocks.copy(), processes)
+            speak(f"Best Fit: {bf_result}")
+
+            # Worst Fit Allocation
+            wf_result = worst_fit(blocks.copy(), processes)
+            speak(f"Worst Fit: {wf_result}")
+
+            # Paging Simulation
+            paging_result = paging(processes, 100)
+            for info in paging_result:
+                speak(f"Paging Info: {info}")
 
 
         # ---------- Exit ----------
