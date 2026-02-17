@@ -10,3 +10,4 @@ screenshots/
 *.png
 alarm_log.txt
 Data.txt
+logs/

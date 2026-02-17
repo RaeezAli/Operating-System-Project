@@ -1,32 +1,62 @@
-def round_robin_scheduling(processes, burst_time, quantum):
+from typing import List, Deque
+from collections import deque
+from .base_scheduler import BaseScheduler, logger
+from .models import Process, GanttEntry
+
+class RoundRobinScheduler(BaseScheduler):
     """
-    Executes the Round Robin scheduling algorithm.
-    Returns a list of (process_name, start_time, end_time) representing the execution sequence.
+    Round Robin (RR) Scheduling implementation.
+    Preemptive algorithm utilizing a time quantum.
     """
-    n = len(processes)
-    remaining_burst = burst_time[:]
-    waiting_time = [0] * n
-    turnaround_time = [0] * n
-    t = 0
-    gantt_chart = []
+    
+    def __init__(self, quantum: int = 2):
+        super().__init__()
+        self.quantum = quantum
 
-    while True:
-        done = True
-        for i in range(n):
-            if remaining_burst[i] > 0:
-                done = False
-                exec_time = min(quantum, remaining_burst[i])
-                gantt_chart.append((processes[i], t, t + exec_time))
-                t += exec_time
-                remaining_burst[i] -= exec_time
-                for j in range(n):
-                    if j != i and remaining_burst[j] > 0:
-                        waiting_time[j] += exec_time
-        if done:
-            break
+    def run(self) -> List[GanttEntry]:
+        self.gantt_chart = []
+        if not self.processes:
+            return []
 
-    for i in range(n):
-        turnaround_time[i] = waiting_time[i] + burst_time[i]
+        # Sort by arrival time initially
+        queue: Deque[Process] = deque(sorted(self.processes, key=lambda x: x.arrival_time))
+        ready_queue: Deque[Process] = deque()
+        
+        current_time = 0
+        completed_count = 0
+        n = len(self.processes)
 
-    # Return results for printing/visualization
-    return gantt_chart, waiting_time, turnaround_time
+        # Basic RR Loop
+        while completed_count < n:
+            # Add arriving processes to ready queue
+            while queue and queue[0].arrival_time <= current_time:
+                ready_queue.append(queue.popleft())
+
+            if not ready_queue:
+                if queue:
+                    current_time = queue[0].arrival_time
+                    continue
+                else:
+                    break
+
+            p = ready_queue.popleft()
+            exec_time = min(p.remaining_time, self.quantum)
+            
+            self.gantt_chart.append(GanttEntry(pid=p.pid, start_time=current_time, end_time=current_time + exec_time))
+            
+            current_time += exec_time
+            p.remaining_time -= exec_time
+
+            # Check for new arrivals during execution
+            while queue and queue[0].arrival_time <= current_time:
+                ready_queue.append(queue.popleft())
+
+            if p.remaining_time > 0:
+                ready_queue.append(p)
+            else:
+                p.completion_time = current_time
+                completed_count += 1
+                logger.info(f"Task completed in simulation: {p.pid}")
+
+        self.calculate_metrics()
+        return self.gantt_chart

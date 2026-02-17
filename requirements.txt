@@ -11,3 +11,4 @@ notify-py
 psutil
 PyPDF2
 python-dotenv
+pyaudio
