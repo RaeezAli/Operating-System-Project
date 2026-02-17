@@ -1,0 +1,13 @@
+pyttsx3
+SpeechRecognition
+pywhatkit
+wikipedia
+pyautogui
+wolframalpha
+pyperclip
+pytube
+matplotlib
+notify-py
+psutil
+PyPDF2
+python-dotenv
