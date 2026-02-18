@@ -1,43 +1,37 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple
-from .models import Process, GanttEntry
-from utils.logger import logger
+from os_simulator.process import Process
 
 class BaseScheduler(ABC):
     """
     Abstract Base Class for all Scheduling Algorithms.
-    Follows the Strategy Pattern to allow extendable algorithms.
-    """
     
-    def __init__(self):
-        self.processes: List[Process] = []
-        self.gantt_chart: List[GanttEntry] = []
-
-    def add_process(self, process: Process):
-        """Adds a process to the scheduling queue."""
-        self.processes.append(process)
+    Provides a standardized interface for scheduling processes and 
+    calculating performance metrics. Concrete implementations must 
+    define the logic for execution order.
+    """
 
     @abstractmethod
-    def run(self) -> List[GanttEntry]:
+    def schedule(self, process_list: List[Process]) -> List[Tuple[int, int, int]]:
         """
-        Executes the scheduling algorithm.
-        Must be implemented by concrete subclasses.
+        Calculates the execution order for a given list of processes.
+        
+        Args:
+            process_list: List of Process objects to schedule.
+            
+        Returns:
+            A list of tuples representing the execution timeline:
+            [(pid, start_time, end_time), ...]
         """
         pass
 
-    def calculate_metrics(self):
-        """Standard metrics calculation (SOLID: Single Responsibility)."""
-        for p in self.processes:
-            p.turnaround_time = p.completion_time - p.arrival_time
-            p.waiting_time = p.turnaround_time - p.burst_time
-
-    def get_average_metrics(self) -> Tuple[float, float]:
-        """Returns (Average Waiting Time, Average Turnaround Time)."""
-        if not self.processes:
-            return 0.0, 0.0
+    @abstractmethod
+    def calculate_metrics(self, process_list: List[Process]) -> None:
+        """
+        Calculates and updates performance metrics for each process in the list.
+        Typically updates Waiting Time and Turnaround Time.
         
-        total_wait = sum(p.waiting_time for p in self.processes)
-        total_tat = sum(p.turnaround_time for p in self.processes)
-        n = len(self.processes)
-        
-        return total_wait / n , total_tat / n
+        Args:
+            process_list: List of Process objects that have completed execution.
+        """
+        pass

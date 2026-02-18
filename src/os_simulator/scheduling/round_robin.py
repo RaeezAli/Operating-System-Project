@@ -1,40 +1,44 @@
-from typing import List, Deque
+from typing import List, Tuple, Deque
 from collections import deque
-from .base_scheduler import BaseScheduler, logger
-from .models import Process, GanttEntry
+from .base_scheduler import BaseScheduler
+from os_simulator.process import Process
 
 class RoundRobinScheduler(BaseScheduler):
     """
     Round Robin (RR) Scheduling implementation.
-    Preemptive algorithm utilizing a time quantum.
+    A preemptive algorithm using a fixed time quantum.
     """
-    
+
     def __init__(self, quantum: int = 2):
-        super().__init__()
+        """
+        Initializes RR with a time quantum.
+        """
         self.quantum = quantum
 
-    def run(self) -> List[GanttEntry]:
-        self.gantt_chart = []
-        if not self.processes:
+    def schedule(self, process_list: List[Process]) -> List[Tuple[int, int, int]]:
+        """
+        Calculates execution timeline using RR logic with time quantum.
+        """
+        if not process_list:
             return []
 
-        # Sort by arrival time initially
-        queue: Deque[Process] = deque(sorted(self.processes, key=lambda x: x.arrival_time))
+        timeline = []
+        # Sort by arrival initially
+        arrival_queue: Deque[Process] = deque(sorted(process_list, key=lambda x: x.arrival_time))
         ready_queue: Deque[Process] = deque()
         
         current_time = 0
         completed_count = 0
-        n = len(self.processes)
+        n = len(process_list)
 
-        # Basic RR Loop
         while completed_count < n:
             # Add arriving processes to ready queue
-            while queue and queue[0].arrival_time <= current_time:
-                ready_queue.append(queue.popleft())
+            while arrival_queue and arrival_queue[0].arrival_time <= current_time:
+                ready_queue.append(arrival_queue.popleft())
 
             if not ready_queue:
-                if queue:
-                    current_time = queue[0].arrival_time
+                if arrival_queue:
+                    current_time = arrival_queue[0].arrival_time
                     continue
                 else:
                     break
@@ -42,21 +46,26 @@ class RoundRobinScheduler(BaseScheduler):
             p = ready_queue.popleft()
             exec_time = min(p.remaining_time, self.quantum)
             
-            self.gantt_chart.append(GanttEntry(pid=p.pid, start_time=current_time, end_time=current_time + exec_time))
-            
+            start = current_time
             current_time += exec_time
             p.remaining_time -= exec_time
+            
+            timeline.append((p.pid, start, current_time))
 
-            # Check for new arrivals during execution
-            while queue and queue[0].arrival_time <= current_time:
-                ready_queue.append(queue.popleft())
+            # Add processes that arrive DURING this execution segment
+            while arrival_queue and arrival_queue[0].arrival_time <= current_time:
+                ready_queue.append(arrival_queue.popleft())
 
             if p.remaining_time > 0:
                 ready_queue.append(p)
             else:
-                p.completion_time = current_time
+                p.calculate_metrics(current_time)
                 completed_count += 1
-                logger.info(f"Task completed in simulation: {p.pid}")
 
-        self.calculate_metrics()
-        return self.gantt_chart
+        return timeline
+
+    def calculate_metrics(self, process_list: List[Process]) -> None:
+        """
+        Metrics (TAT, WT) are derived automatically when process finishes in schedule().
+        """
+        pass
